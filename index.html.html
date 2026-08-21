@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Career OS Pixel Clock</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  :root {
+    --fg: #ffffff;
+    --muted: rgba(255,255,255,.58);
+    --line: rgba(255,255,255,.72);
+    --shadow: rgba(255,255,255,.16);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  body {
+    display: grid;
+    place-items: center;
+    font-family: "Press Start 2P", monospace;
+    color: var(--fg);
+    -webkit-font-smoothing: none;
+    text-rendering: geometricPrecision;
+  }
+
+  .clock {
+    position: relative;
+    width: min(100%, 760px);
+    min-height: 250px;
+    padding: 28px 34px 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.12);
+    border: 2px solid var(--line);
+    box-shadow:
+      6px 0 0 -4px var(--line),
+      -6px 0 0 -4px var(--line),
+      0 6px 0 -4px var(--line),
+      0 -6px 0 -4px var(--line),
+      0 0 20px var(--shadow);
+    clip-path: polygon(
+      12px 0, calc(100% - 12px) 0,
+      calc(100% - 12px) 4px, calc(100% - 4px) 4px,
+      calc(100% - 4px) 12px, 100% 12px,
+      100% calc(100% - 12px), calc(100% - 4px) calc(100% - 12px),
+      calc(100% - 4px) calc(100% - 4px), calc(100% - 12px) calc(100% - 4px),
+      calc(100% - 12px) 100%, 12px 100%,
+      12px calc(100% - 4px), 4px calc(100% - 4px),
+      4px calc(100% - 12px), 0 calc(100% - 12px),
+      0 12px, 4px 12px, 4px 4px, 12px 4px
+    );
+  }
+
+  .day {
+    font-size: clamp(11px, 2.2vw, 18px);
+    letter-spacing: .14em;
+    color: var(--muted);
+    margin-bottom: 22px;
+    text-align: center;
+  }
+
+  .time {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(5px, 1.1vw, 12px);
+    min-height: clamp(70px, 14vw, 126px);
+    line-height: 1;
+  }
+
+  .digit {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: .74em;
+    height: 1em;
+    font-size: clamp(52px, 11vw, 112px);
+    font-weight: normal;
+    transform-style: preserve-3d;
+    transform-origin: center;
+    text-shadow: 3px 3px 0 rgba(0,0,0,.25);
+  }
+
+  .digit.flip {
+    animation: pixelFlip 320ms steps(5, end);
+  }
+
+  .colon {
+    font-size: clamp(46px, 9vw, 92px);
+    transform: translateY(-.03em);
+    opacity: .95;
+    text-shadow: 3px 3px 0 rgba(0,0,0,.25);
+  }
+
+  .date {
+    margin-top: 24px;
+    font-size: clamp(8px, 1.55vw, 13px);
+    letter-spacing: .08em;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @keyframes pixelFlip {
+    0%   { transform: rotateX(0deg) scaleY(1); filter: brightness(1); }
+    35%  { transform: rotateX(78deg) scaleY(.82); filter: brightness(.65); }
+    36%  { transform: rotateX(-78deg) scaleY(.82); filter: brightness(.65); }
+    100% { transform: rotateX(0deg) scaleY(1); filter: brightness(1); }
+  }
+
+  @media (max-width: 430px) {
+    .clock {
+      min-height: 210px;
+      padding: 24px 18px;
+    }
+    .day { margin-bottom: 18px; }
+    .date { margin-top: 20px; }
+  }
+</style>
+</head>
+<body>
+  <main class="clock" aria-label="Reloj">
+    <div class="day" id="day">VIERNES</div>
+
+    <div class="time" aria-live="polite">
+      <span class="digit" id="h1">0</span>
+      <span class="digit" id="h2">0</span>
+      <span class="colon">:</span>
+      <span class="digit" id="m1">0</span>
+      <span class="digit" id="m2">0</span>
+    </div>
+
+    <div class="date" id="date">31 DE JULIO · 2026</div>
+  </main>
+
+<script>
+  const dayNames = [
+    "DOMINGO", "LUNES", "MARTES", "MIÉRCOLES",
+    "JUEVES", "VIERNES", "SÁBADO"
+  ];
+
+  const monthNames = [
+    "ENERO", "FEBRERO", "MARZO", "ABRIL",
+    "MAYO", "JUNIO", "JULIO", "AGOSTO",
+    "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+  ];
+
+  const previous = { h1: null, h2: null, m1: null, m2: null };
+
+  function setDigit(id, value, animate = true) {
+    const el = document.getElementById(id);
+
+    if (previous[id] !== value) {
+      el.classList.remove("flip");
+      void el.offsetWidth; // Reinicia la animación.
+      if (animate && previous[id] !== null) el.classList.add("flip");
+      el.textContent = value;
+      previous[id] = value;
+    }
+  }
+
+  function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+
+    setDigit("h1", hours[0]);
+    setDigit("h2", hours[1]);
+    setDigit("m1", minutes[0]);
+    setDigit("m2", minutes[1]);
+
+    document.getElementById("day").textContent =
+      dayNames[now.getDay()];
+
+    document.getElementById("date").textContent =
+      `${now.getDate()} DE ${monthNames[now.getMonth()]} · ${now.getFullYear()}`;
+  }
+
+  updateClock();
+
+  // Sincroniza la actualización con el cambio real de minuto.
+  const delay = 60000 - (Date.now() % 60000) + 20;
+  setTimeout(() => {
+    updateClock();
+    setInterval(updateClock, 60000);
+  }, delay);
+</script>
+</body>
+</html>
